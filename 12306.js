@@ -2,7 +2,7 @@
 [Script]
 # 12306 开屏广告跳过优化
 # 修改广告响应，将等待时间设置为极短
-^https:\/\/ad\.12306\.cn\/ad\/ser\/getAdList url script-response-body https://raw.githubusercontent.com/your_github_repo/your_script_name.js
+^https:\/\/ad\.12306\.cn\/ad\/ser\/getAdList url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/12306.js
 
 [MITM]
 hostname = ad.12306.cn
@@ -19,11 +19,11 @@ try {
         console.log("12306 Ad Response: Found advertParam. Original skipTime:", obj.advertParam.skipTime);
 
         // 修改 skipTime 为极小值 (0 或 1)
-        obj.advertParam.skipTime = 1; // 设置为1毫秒，避免设置为0可能引起的其他问题
+        obj.advertParam.skipTime = 0; // 设置为1毫秒，避免设置为0可能引起的其他问题
 
         // 可选：清空 materialsList，确保不显示任何广告内容
-        // obj.materialsList = [];
-        // console.log("12306 Ad Response: materialsList cleared.");
+        obj.materialsList = [];
+        console.log("12306 Ad Response: materialsList cleared.");
 
         console.log("12306 Ad Response: Modified skipTime to", obj.advertParam.skipTime);
 
