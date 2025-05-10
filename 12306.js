@@ -1,46 +1,69 @@
 /*
 [Script]
-# 12306 开屏广告跳过优化
-# 修改广告响应，将等待时间设置为极短
-^https:\/\/ad\.12306\.cn\/ad\/ser\/getAdList url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/12306.js
+# 12306 开屏广告跳过优化 (Request Body)
+# 拦截开屏广告请求 (placementNo 0007)，伪造响应，设置极短等待时间并隐藏跳过按钮
+^https:\/\/ad\.12306\.cn\/ad\/ser\/getAdList url script-request-body https://raw.githubusercontent.com/your_github_repo/12306_splash_ad_skip.js
 
 [MITM]
 hostname = ad.12306.cn
 */
 
-let body = $response.body;
-let obj = {};
+// 脚本代码开始
+const version = 'V1.1'; // 更新版本号
+
+let requestBody = $request.body;
+let requestObj = {};
 
 try {
-    obj = JSON.parse(body);
+    requestObj = JSON.parse(requestBody);
 
-    // 检查是否存在 advertParam 结构
-    if (obj && obj.advertParam) {
-        console.log("12306 Ad Response: Found advertParam. Original skipTime:", obj.advertParam.skipTime);
+    // 检查请求体中的 placementNo 是否是开屏广告 (0007)
+    if (requestObj && requestObj.placementNo === "0007") {
+        console.log(`12306 Ad Request Script: Matched splash ad request (placementNo: ${requestObj.placementNo}). Forging response.`);
 
-        // 修改 skipTime 为极小值 (0 或 1)
-        obj.advertParam.skipTime = 0; // 设置为1毫秒，避免设置为0可能引起的其他问题
+        // 构造伪造的响应体
+        let forgedResponseBody = {
+            code: "00", // 成功码
+            rid: "fake_splash_rid_" + Date.now(), // 伪造一个随机ID
+            materialsList: [], // 清空广告素材列表，确保不显示任何广告内容
+            advertParam: {
+                // 参考响应体 3 的结构，但修改关键参数
+                chacheTime: 600000,
+                index: 0,
+                showSkipBtn: 0, // 隐藏跳过按钮
+                displayNumDi: 0, // 不显示
+                bs: 2,
+                isAfc: 1,
+                skipTime: 1, // 设置等待时间为1毫秒，理论上最短
+                isDefault: 0,
+                marginBottom: 15,
+                fixedscreen: 3,
+                skipTimeAgain: 0, // 设置为0或一个很小的值
+                isFullScreen: 0
+            },
+            message: "Fake splash ad response by script" // 添加一个消息说明
+        };
 
-        // 可选：清空 materialsList，确保不显示任何广告内容
-        obj.materialsList = [];
-        console.log("12306 Ad Response: materialsList cleared.");
+        console.log("12306 Ad Request Script: Forged response with skipTime=1, showSkipBtn=0, empty materialsList.");
 
-        console.log("12306 Ad Response: Modified skipTime to", obj.advertParam.skipTime);
-
-        // 将修改后的对象转回 JSON 字符串
-        body = JSON.stringify(obj);
-
-        // 返回修改后的响应体
-        $done({body});
+        // 使用 $done({response: {body: ...}}) 返回伪造的响应
+        // 这会阻止原始请求发送到服务器，并立即将伪造的响应返回给应用
+        $done({ response: { body: JSON.stringify(forgedResponseBody) } });
 
     } else {
-        console.log("12306 Ad Response: advertParam not found or response structure unexpected. Passing through.");
-        // 如果结构不符合预期，则不修改，直接返回原始响应
-        $done({body});
+        // 如果不是开屏广告请求 (placementNo 不是 0007, 或者请求体结构不符)，
+        // 则让原始请求正常发送到服务器。
+        if (requestObj && requestObj.placementNo) {
+             console.log(`12306 Ad Request Script: Not splash ad request (placementNo: ${requestObj.placementNo}). Passing request through.`);
+        } else {
+             console.log("12306 Ad Request Script: Request body structure unexpected or placementNo missing. Passing request through.");
+        }
+        $done({}); // $done({}) 表示不修改请求，让它继续发送
     }
 
 } catch (e) {
-    console.error("12306 Ad Response Script Error:", e);
-    // 发生错误时，也直接返回原始响应
-    $done({body});
+    console.error("12306 Ad Request Script Error:", e);
+    // 发生错误时，让请求正常发送，避免应用崩溃
+    $done({});
 }
+// 脚本代码结束
