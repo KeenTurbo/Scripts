@@ -2,7 +2,7 @@
 [Script]
 # 车来了顶部横幅广告图片替换 (Response Body)
 # 拦截指定的广告图片请求，返回一个1x1透明PNG，避免空白区域
-^https:\/\/image3\.chelaile\.net\.cn\/77a42D3P\.jpg url script-response-body https://raw.githubusercontent.com/your_github_repo/chelaile_banner_replace.js
+^https:\/\/image3\.chelaile\.net\.cn\/77a42D3P\.jpg url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/chelaile_banner_replace.js
 
 [MITM]
 hostname = image3.chelaile.net.cn
