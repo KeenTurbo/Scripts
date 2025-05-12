@@ -1,10 +1,18 @@
+[Rewrite]
+# 微博开屏广告屏蔽及加速
+# 匹配可能的开屏广告数据接口 URL
+^https?:\/\/.*\.weibo\.cn\/.*\/ad\/realtime url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover.js
+^https?:\/\/.*\.weibo\.cn\/.*\/interface\/sdk\/sdkad\.php url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover.js
+^https?:\/\/.*\.weibo\.cn\/.*\/wbapplua\/wbpullad\.lua url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover.js
+# 你可以根据抓包结果添加或修改这里的 URL 匹配模式
 
+[Script]
 # 微博开屏广告屏蔽及加速脚本
 # 作者: 基于ddgksf2013脚本和用户提供的JSON分析编写
 # 版本: 1.0
 # 仓库地址 (示例): https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover.js
 
-const isDebug = true; // 设置为 true 可以在 Quantumult X 日志中看到详细处理信息
+const isDebug = false; // 设置为 true 可以在 Quantumult X 日志中看到详细处理信息
 
 function log(message) {
   if (isDebug) {
