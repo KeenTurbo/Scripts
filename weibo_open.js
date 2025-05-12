@@ -4,7 +4,7 @@
 # 版本: 1.0
 
 
-const isDebug = false; // 设置为 true 可以在 Quantumult X 日志中看到详细处理信息
+const isDebug = true; // 设置为 true 可以在 Quantumult X 日志中看到详细处理信息
 
 function log(message) {
   if (isDebug) {
