@@ -1,31 +1,7 @@
-[Rewrite]
-# 微博开屏广告屏蔽及加速 (整合版)
-# 作者: 基于ddgksf2013脚本和用户提供的JSON分析编写
-# 版本: 1.1
-# 仓库地址 (示例): https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
 
-# 匹配可能的开屏广告数据接口 URL (JSON 结构 1)
-^https?:\/\/.*\.weibo\.cn\/.*\/ad\/realtime url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
-
-# 匹配可能的开屏配置接口 URL (JSON 结构 2, 包含 OK 后缀)
-^https?:\/\/.*\.weibo\.cn\/.*\/interface\/sdk\/sdkad\.php url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
-
-# 匹配可能的开屏配置接口 URL (JSON 结构 2, 不含 OK 后缀)
-# 某些版本或接口可能不带 OK 后缀，添加一个备用
-^https?:\/\/.*\.weibo\.cn\/.*\/wbapplua\/wbpullad\.lua url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
-
-# 匹配包含大量功能开关的配置接口 URL (JSON 结构 3)
-# !!! 请将这里的占位符 URL 替换为你实际抓包到的 URL !!!
-^https?:\/\/.*\.weibo\.cn\/.*\/client\/settings url script-response-body https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
-# 常见的配置 URL 可能包含 /config, /settings, /get_config, /get_settings 等
-
-# 你可以根据抓包结果添加或修改这里的 URL 匹配模式
-
-[Script]
 # 微博开屏广告屏蔽及加速脚本 (整合版)
 # 作者: 基于ddgksf2013脚本和用户提供的JSON分析编写
 # 版本: 1.1
-# 仓库地址 (示例): https://raw.githubusercontent.com/YourName/QuantumultX/main/weibo_splash_ad_remover_v1.1.js
 
 const isDebug = true; // 设置为 true 可以在 Quantumult X 日志中看到详细处理信息
 
