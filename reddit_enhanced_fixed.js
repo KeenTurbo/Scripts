@@ -1,11 +1,11 @@
 // ==UserScript==
-// @ScriptName        Reddit Enhanced (Fixed & Clarified v2)
+// @ScriptName        Reddit Enhanced (Fixed & Clarified v3)
 // @Author            Original by @ddgksf2013, Modified by AI & User Request
 // @Function          Remove Reddit feed ads, post page ads, CommentTreeAds, NSFW unmasking.
 // @AddRequest        https://bit.ly/addRequestforAdBlock // Kept from original
 // @LPAutoUpdate      true
-// @LPScriptName      RedditEnhancedFixedV2
-// @LPScriptVersion   1.0.6
+// @LPScriptName      RedditEnhancedFixedV3
+// @LPScriptVersion   1.0.7
 // ==/UserScript==
 
 // This script is designed for Quantumult X's script-response-body.
@@ -14,11 +14,11 @@
 // hostname = gql-fed.reddit.com
 //
 // [Script]
-// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/reddit_enhanced_fixed.js // 确保文件名匹配
+// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/reddit_enhanced_fixed.js  // 请确保文件名匹配
 
 (function() {
-    const scriptName = 'Reddit Enhanced (Fixed & Clarified v2)';
-    const version = 'V1.0.6';
+    const scriptName = 'Reddit Enhanced (Fixed & Clarified v3)';
+    const version = 'V1.0.7';
     console.log(`[${scriptName}] ${version} starting.`);
 
     let responseBody = $response.body;
@@ -38,44 +38,52 @@
         return;
     }
 
-    // 尝试从请求头获取 operationName
-    let operationName = $request.headers['x-apollo-operation-name'] || $request.headers['X-Apollo-Operation-Name'];
+    // 尝试从请求头获取 operationName (增加了 X-APOLLO-OPERATION-NAME 的检查)
+    let operationName = $request.headers['x-apollo-operation-name'] || // 全小写
+                        $request.headers['X-Apollo-Operation-Name'] || // Apollo 首字母大写
+                        $request.headers['X-APOLLO-OPERATION-NAME'];   // APOLLO 全大写 (根据日志添加)
 
-    // 如果请求头中没有，并且是 POST 请求，尝试从请求体中获取
-    if (!operationName && $request.method === 'POST' && $request.body) {
-        console.log(`[${scriptName}] 'x-apollo-operation-name' header not found. Checking request body for POST request.`);
-        try {
-            // $request.body 在 Quantumult X 中可能是 Uint8Array 或 String
-            let requestBodyStr;
-            if (typeof $request.body === 'string') {
-                requestBodyStr = $request.body;
-            } else if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) { // Uint8Array
-                requestBodyStr = new TextDecoder().decode($request.body);
-            }
+    if (operationName) {
+        console.log(`[${scriptName}] Found operationName in headers: ${operationName}`);
+    } else {
+        console.log(`[${scriptName}] operationName not found in common headers. Will check request body if POST.`);
+        // 如果请求头中没有，并且是 POST 请求，尝试从请求体中获取
+        if ($request.method === 'POST') {
+            if ($request.body) {
+                console.log(`[${scriptName}] Checking request body for operationName.`);
+                try {
+                    let requestBodyStr;
+                    if (typeof $request.body === 'string') {
+                        requestBodyStr = $request.body;
+                    } else if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) { // Uint8Array
+                        requestBodyStr = new TextDecoder().decode($request.body);
+                    }
 
-            if (requestBodyStr) {
-                const requestBodyData = JSON.parse(requestBodyStr);
-                if (requestBodyData && requestBodyData.operationName) {
-                    operationName = requestBodyData.operationName;
-                    console.log(`[${scriptName}] Found operationName in request body: ${operationName}`);
-                } else {
-                    console.log(`[${scriptName}] 'operationName' not found in parsed request body or request body is not as expected.`);
-                    console.log(`[${scriptName}] Request Body (parsed structure): ${JSON.stringify(requestBodyData)}`);
+                    if (requestBodyStr) {
+                        const requestBodyData = JSON.parse(requestBodyStr);
+                        if (requestBodyData && requestBodyData.operationName) {
+                            operationName = requestBodyData.operationName;
+                            console.log(`[${scriptName}] Found operationName in request body: ${operationName}`);
+                        } else {
+                            console.log(`[${scriptName}] 'operationName' not found in parsed request body.`);
+                        }
+                    } else {
+                        console.log(`[${scriptName}] Request body is not a string or decodable Uint8Array.`);
+                    }
+                } catch (e) {
+                    console.error(`[${scriptName}] Error parsing request body: ${e}`);
+                    let bodyPreview = typeof $request.body === 'string' ? $request.body.substring(0, 200) : '[Non-string or complex body]';
+                    if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) {
+                        try { bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,200)); }
+                        catch (decodeError) { bodyPreview = "[Error decoding Uint8Array body]"; }
+                    }
+                    console.log(`[${scriptName}] Request Body (raw snippet on error): ${bodyPreview}...`);
                 }
             } else {
-                 console.log(`[${scriptName}] Request body is not a string or decodable Uint8Array.`);
+                console.log(`[${scriptName}] Request method is POST, but $request.body is not available. Cannot check body for operationName.`);
             }
-        } catch (e) {
-            console.error(`[${scriptName}] Error parsing request body: ${e}`);
-            let bodyPreview = typeof $request.body === 'string' ? $request.body.substring(0, 500) : '[Non-string or complex body]';
-            if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) {
-                try {
-                    bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,500));
-                } catch (decodeError) {
-                    bodyPreview = "[Error decoding Uint8Array body]";
-                }
-            }
-            console.log(`[${scriptName}] Request Body (raw snippet on error): ${bodyPreview}...`);
+        } else {
+            console.log(`[${scriptName}] Not a POST request, skipping body check for operationName.`);
         }
     }
 
@@ -85,24 +93,21 @@
         // 记录详细信息以便调试
         console.log(`[${scriptName}] Final Check - Request Method: ${$request.method}`);
         console.log(`[${scriptName}] Final Check - Request URL: ${$request.url}`);
-        console.log(`[${scriptName}] Final Check - Request Headers: ${JSON.stringify($request.headers)}`);
+        // console.log(`[${scriptName}] Final Check - Request Headers: ${JSON.stringify($request.headers)}`); // 已在外部提供
         if ($request.method === 'POST' && $request.body) {
             let bodyPreview = typeof $request.body === 'string' ? $request.body.substring(0, 500) : '[Non-string or complex body]';
              if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) {
-                try {
-                    bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,500));
-                } catch (decodeError) {
-                    bodyPreview = "[Error decoding Uint8Array body]";
-                }
+                try { bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,500)); }
+                catch (decodeError) { bodyPreview = "[Error decoding Uint8Array body]"; }
             }
             console.log(`[${scriptName}] Final Check - Request Body (snippet): ${bodyPreview}...`);
         }
-        $done({ body: JSON.stringify(responseObject) }); // 返回原始解析后的响应体
+        $done({ body: JSON.stringify(responseObject) });
         return;
     }
     console.log(`[${scriptName}] Intercepted operation: ${operationName}`);
 
-    // --- 处理函数部分 (与 V1.0.5 相同，此处省略以保持简洁，实际使用时请包含完整代码) ---
+    // --- 处理函数部分 (与 V1.0.6 相同，此处省略以保持简洁，实际使用时请包含完整代码) ---
     function handleHomeFeed(obj) {
         try {
             const feedEdges = obj?.data?.homeV3?.feed?.edges;
@@ -127,7 +132,6 @@
             try {
                 const sourceData = cell?.mediaCell?.sourceData;
                 if (sourceData) {
-                    // 解除 NSFW 图片/视频的模糊
                     if (sourceData.isObfuscated === true) {
                         sourceData.isObfuscated = false;
                         console.log(`[${scriptName}][processHomeFeedCells] Unblurred an item (isObfuscated).`);
@@ -137,8 +141,6 @@
                         console.log(`[${scriptName}][processHomeFeedCells] Cleared obfuscatedPath for an item.`);
                     }
                 }
-
-                // 移除 NSFW 标签
                 const indicators = cell?.indicatorsCell?.indicators;
                 if (Array.isArray(indicators)) {
                     cell.indicatorsCell.indicators = indicators.filter(indicator => indicator !== 'NSFW');
@@ -156,8 +158,8 @@
             if (preferences) {
                 preferences.isAdPersonalizationAllowed = false;
                 preferences.isThirdPartySiteDataPersonalizationAllowed = false;
-                preferences.isThirdPartySiteDataPersonalizationScreenAllowed = false; // 可能不存在
-                preferences.isNsfwMediaBlocked = false; // 允许 NSFW 内容
+                preferences.isThirdPartySiteDataPersonalizationScreenAllowed = false;
+                preferences.isNsfwMediaBlocked = false;
                 console.log(`[${scriptName}][FetchIdentityPreferences] Updated identity preferences.`);
             }
         } catch (e) {
@@ -194,11 +196,11 @@
         }
     }
 
-    function handleCommentsPageAds(obj) { // 用于其他评论页广告
+    function handleCommentsPageAds(obj) {
         try {
             if (obj && obj.data) {
                 console.log(`[${scriptName}][CommentsPageAds] Clearing content under 'data' key.`);
-                obj.data = {}; // 清空 'data' 下的内容
+                obj.data = {};
             } else {
                  console.log(`[${scriptName}][CommentsPageAds] No 'data' key found to clear.`);
             }
@@ -212,21 +214,20 @@
         'CommentsPageAds': handleCommentsPageAds,
         'CommentTreeAds': handleCommentTreeAds,
         'FetchIdentityPreferences': handleFetchIdentityPreferences,
-        'FeedPostDetailsByIds': handleFeedPostDetailsByIds // 这个处理器内部会调用 $done()
+        'FeedPostDetailsByIds': handleFeedPostDetailsByIds
     };
 
     // 执行对应的处理函数
     if (processorMap[operationName]) {
         console.log(`[${scriptName}] Processing ${operationName}...`);
-        processorMap[operationName](responseObject); // 原地修改 responseObject
+        processorMap[operationName](responseObject);
 
-        // 如果不是 FeedPostDetailsByIds (它自己会调用 $done), 则在这里调用 $done
         if (operationName !== 'FeedPostDetailsByIds') {
             $done({ body: JSON.stringify(responseObject) });
         }
     } else {
         console.log(`[${scriptName}] No specific handler for operation: ${operationName}. Passing through modified/original body.`);
-        $done({ body: JSON.stringify(responseObject) }); // 返回原始解析后的响应体
+        $done({ body: JSON.stringify(responseObject) });
     }
 
 })();
