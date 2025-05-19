@@ -1,11 +1,11 @@
 // ==UserScript==
-// @ScriptName        Reddit Enhanced (Fixed & Clarified)
+// @ScriptName        Reddit Enhanced (Fixed & Clarified v2)
 // @Author            Original by @ddgksf2013, Modified by AI & User Request
 // @Function          Remove Reddit feed ads, post page ads, CommentTreeAds, NSFW unmasking.
-// @AddRequest        https://bit.ly/addRequestforAdBlock // Kept from original, purpose unclear for this script
+// @AddRequest        https://bit.ly/addRequestforAdBlock // Kept from original
 // @LPAutoUpdate      true
-// @LPScriptName      RedditEnhancedFixed
-// @LPScriptVersion   1.0.5
+// @LPScriptName      RedditEnhancedFixedV2
+// @LPScriptVersion   1.0.6
 // ==/UserScript==
 
 // This script is designed for Quantumult X's script-response-body.
@@ -14,11 +14,11 @@
 // hostname = gql-fed.reddit.com
 //
 // [Script]
-// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/reddit_enhanced_fixed.js
+// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body reddit_enhanced_fixed_v2.js // 请确保文件名匹配
 
 (function() {
-    const scriptName = 'Reddit Enhanced (Fixed & Clarified)';
-    const version = 'V1.0.5'; // Based on Moyu V1.0.4
+    const scriptName = 'Reddit Enhanced (Fixed & Clarified v2)';
+    const version = 'V1.0.6';
     console.log(`[${scriptName}] ${version} starting.`);
 
     let responseBody = $response.body;
@@ -34,32 +34,81 @@
         responseObject = JSON.parse(responseBody);
     } catch (e) {
         console.error(`[${scriptName}] JSON parsing error: ${e}. Passing original body.`);
-        $done({ body: responseBody }); // Pass through original body on parse error
+        $done({ body: responseBody });
         return;
     }
 
-    // Determine operationName from request headers
-    // Reddit's GraphQL API often uses this header.
-    const operationName = $request.headers['x-apollo-operation-name'] || $request.headers['X-Apollo-Operation-Name'];
+    // 尝试从请求头获取 operationName
+    let operationName = $request.headers['x-apollo-operation-name'] || $request.headers['X-Apollo-Operation-Name'];
+
+    // 如果请求头中没有，并且是 POST 请求，尝试从请求体中获取
+    if (!operationName && $request.method === 'POST' && $request.body) {
+        console.log(`[${scriptName}] 'x-apollo-operation-name' header not found. Checking request body for POST request.`);
+        try {
+            // $request.body 在 Quantumult X 中可能是 Uint8Array 或 String
+            let requestBodyStr;
+            if (typeof $request.body === 'string') {
+                requestBodyStr = $request.body;
+            } else if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) { // Uint8Array
+                requestBodyStr = new TextDecoder().decode($request.body);
+            }
+
+            if (requestBodyStr) {
+                const requestBodyData = JSON.parse(requestBodyStr);
+                if (requestBodyData && requestBodyData.operationName) {
+                    operationName = requestBodyData.operationName;
+                    console.log(`[${scriptName}] Found operationName in request body: ${operationName}`);
+                } else {
+                    console.log(`[${scriptName}] 'operationName' not found in parsed request body or request body is not as expected.`);
+                    console.log(`[${scriptName}] Request Body (parsed structure): ${JSON.stringify(requestBodyData)}`);
+                }
+            } else {
+                 console.log(`[${scriptName}] Request body is not a string or decodable Uint8Array.`);
+            }
+        } catch (e) {
+            console.error(`[${scriptName}] Error parsing request body: ${e}`);
+            let bodyPreview = typeof $request.body === 'string' ? $request.body.substring(0, 500) : '[Non-string or complex body]';
+            if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) {
+                try {
+                    bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,500));
+                } catch (decodeError) {
+                    bodyPreview = "[Error decoding Uint8Array body]";
+                }
+            }
+            console.log(`[${scriptName}] Request Body (raw snippet on error): ${bodyPreview}...`);
+        }
+    }
+
 
     if (!operationName) {
-        console.log(`[${scriptName}] No operationName found in request headers. Passing through modified/original body.`);
-        $done({ body: JSON.stringify(responseObject) });
+        console.log(`[${scriptName}] No operationName found in headers or request body. Passing through modified/original body.`);
+        // 记录详细信息以便调试
+        console.log(`[${scriptName}] Final Check - Request Method: ${$request.method}`);
+        console.log(`[${scriptName}] Final Check - Request URL: ${$request.url}`);
+        console.log(`[${scriptName}] Final Check - Request Headers: ${JSON.stringify($request.headers)}`);
+        if ($request.method === 'POST' && $request.body) {
+            let bodyPreview = typeof $request.body === 'string' ? $request.body.substring(0, 500) : '[Non-string or complex body]';
+             if (typeof $request.body === 'object' && $request.body.buffer instanceof ArrayBuffer) {
+                try {
+                    bodyPreview = new TextDecoder("utf-8", { fatal: false }).decode($request.body.slice(0,500));
+                } catch (decodeError) {
+                    bodyPreview = "[Error decoding Uint8Array body]";
+                }
+            }
+            console.log(`[${scriptName}] Final Check - Request Body (snippet): ${bodyPreview}...`);
+        }
+        $done({ body: JSON.stringify(responseObject) }); // 返回原始解析后的响应体
         return;
     }
     console.log(`[${scriptName}] Intercepted operation: ${operationName}`);
 
-    // --- Handler Functions ---
-
-    /**
-     * Handles HomeFeedSdui: Removes promoted content and unblurs NSFW media in the home feed.
-     */
+    // --- 处理函数部分 (与 V1.0.5 相同，此处省略以保持简洁，实际使用时请包含完整代码) ---
     function handleHomeFeed(obj) {
         try {
             const feedEdges = obj?.data?.homeV3?.feed?.edges;
             if (Array.isArray(feedEdges)) {
                 obj.data.homeV3.feed.edges = feedEdges
-                    .filter(edge => !edge?.node?.promotedContent) // Remove promoted posts
+                    .filter(edge => !edge?.node?.promotedContent) // 移除推广帖子
                     .map(edge => {
                         if (edge?.node?.cells && Array.isArray(edge.node.cells)) {
                             edge.node.cells = processHomeFeedCells(edge.node.cells);
@@ -73,15 +122,12 @@
         }
     }
 
-    /**
-     * Processes individual cells in the home feed: Unblurs NSFW media.
-     */
     function processHomeFeedCells(cells) {
         return cells.map(cell => {
             try {
                 const sourceData = cell?.mediaCell?.sourceData;
                 if (sourceData) {
-                    // Unblur NSFW images/videos
+                    // 解除 NSFW 图片/视频的模糊
                     if (sourceData.isObfuscated === true) {
                         sourceData.isObfuscated = false;
                         console.log(`[${scriptName}][processHomeFeedCells] Unblurred an item (isObfuscated).`);
@@ -92,7 +138,7 @@
                     }
                 }
 
-                // Remove NSFW indicator tag if present
+                // 移除 NSFW 标签
                 const indicators = cell?.indicatorsCell?.indicators;
                 if (Array.isArray(indicators)) {
                     cell.indicatorsCell.indicators = indicators.filter(indicator => indicator !== 'NSFW');
@@ -104,17 +150,14 @@
         });
     }
 
-    /**
-     * Handles FetchIdentityPreferences: Modifies user preferences to disable ad tracking and allow NSFW content.
-     */
     function handleFetchIdentityPreferences(obj) {
         try {
             const preferences = obj?.data?.identity?.preferences;
             if (preferences) {
                 preferences.isAdPersonalizationAllowed = false;
                 preferences.isThirdPartySiteDataPersonalizationAllowed = false;
-                preferences.isThirdPartySiteDataPersonalizationScreenAllowed = false; // May or may not exist
-                preferences.isNsfwMediaBlocked = false; // Allow NSFW media
+                preferences.isThirdPartySiteDataPersonalizationScreenAllowed = false; // 可能不存在
+                preferences.isNsfwMediaBlocked = false; // 允许 NSFW 内容
                 console.log(`[${scriptName}][FetchIdentityPreferences] Updated identity preferences.`);
             }
         } catch (e) {
@@ -122,14 +165,8 @@
         }
     }
 
-    /**
-     * Handles FeedPostDetailsByIds: Unmarks posts as NSFW.
-     * This function calls $done() itself, so it will be the final step for this operation.
-     */
     function handleFeedPostDetailsByIds(obj) {
         try {
-            // The original script stringifies, replaces, then $done.
-            // This is a broad approach.
             let modifiedBody = JSON.stringify(obj);
             modifiedBody = modifiedBody.replace(/"isNsfw":true/g, '"isNsfw":false');
             console.log(`[${scriptName}][FeedPostDetailsByIds] Attempted to unmark NSFW posts. Calling $done.`);
@@ -140,9 +177,6 @@
         }
     }
 
-    /**
-     * Handles CommentTreeAds: Clears ads from the comment tree.
-     */
     function handleCommentTreeAds(obj) {
         try {
             if (obj?.data?.postInfoById?.commentTreeAds) {
@@ -160,16 +194,11 @@
         }
     }
 
-    /**
-     * Handles CommentsPageAds: Attempts to clear ad data.
-     * The original script's flawed handleClearBody implied wanting to empty the response.
-     * This version clears the 'data' part of the response.
-     */
-    function handleCommentsPageAds(obj) {
+    function handleCommentsPageAds(obj) { // 用于其他评论页广告
         try {
             if (obj && obj.data) {
                 console.log(`[${scriptName}][CommentsPageAds] Clearing content under 'data' key.`);
-                obj.data = {}; // Clears all content under the 'data' key
+                obj.data = {}; // 清空 'data' 下的内容
             } else {
                  console.log(`[${scriptName}][CommentsPageAds] No 'data' key found to clear.`);
             }
@@ -177,30 +206,27 @@
             console.error(`[${scriptName}][CommentsPageAds] Error: ${e}`);
         }
     }
-
-    // --- Processor Map ---
-    // Maps operation names to their respective handler functions.
+    // --- 处理器映射 ---
     const processorMap = {
         'HomeFeedSdui': handleHomeFeed,
-        'CommentsPageAds': handleCommentsPageAds,         // Fixed handler
-        'CommentTreeAds': handleCommentTreeAds,           // Fixed handler
+        'CommentsPageAds': handleCommentsPageAds,
+        'CommentTreeAds': handleCommentTreeAds,
         'FetchIdentityPreferences': handleFetchIdentityPreferences,
-        'FeedPostDetailsByIds': handleFeedPostDetailsByIds // This handler calls $done() internally
+        'FeedPostDetailsByIds': handleFeedPostDetailsByIds // 这个处理器内部会调用 $done()
     };
 
-    // Execute the appropriate handler if one exists for the current operationName
+    // 执行对应的处理函数
     if (processorMap[operationName]) {
         console.log(`[${scriptName}] Processing ${operationName}...`);
-        processorMap[operationName](responseObject); // Modify responseObject in place
+        processorMap[operationName](responseObject); // 原地修改 responseObject
 
-        // If the handler was 'FeedPostDetailsByIds', it already called $done.
-        // For other handlers, we proceed to the final $done call here.
+        // 如果不是 FeedPostDetailsByIds (它自己会调用 $done), 则在这里调用 $done
         if (operationName !== 'FeedPostDetailsByIds') {
             $done({ body: JSON.stringify(responseObject) });
         }
     } else {
         console.log(`[${scriptName}] No specific handler for operation: ${operationName}. Passing through modified/original body.`);
-        $done({ body: JSON.stringify(responseObject) });
+        $done({ body: JSON.stringify(responseObject) }); // 返回原始解析后的响应体
     }
 
 })();
