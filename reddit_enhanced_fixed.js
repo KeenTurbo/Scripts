@@ -14,7 +14,7 @@
 // hostname = gql-fed.reddit.com
 //
 // [Script]
-// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body reddit_enhanced_fixed.js
+// ^https?:\/\/gql-fed\.reddit\.com\/$ url script-response-body https://raw.githubusercontent.com/KeenTurbo/Scripts/refs/heads/master/reddit_enhanced_fixed.js
 
 (function() {
     const scriptName = 'Reddit Enhanced (Fixed & Clarified)';
